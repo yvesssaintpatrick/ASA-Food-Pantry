@@ -40,3 +40,8 @@ Prerequisites
 * Tkinter, customtkinter, and PIL for the GUI.
 * Google API client library for Sheets API integration.
 * ReportLab for PDF generation.
+
+![prototype2](https://github.com/yvesssaintpatrick/ASA-Food-Pantry/assets/148909596/f13fdf5b-f7c4-44d8-98ce-8c9da37f612b)
+
+
+![inventory](https://github.com/yvesssaintpatrick/ASA-Food-Pantry/assets/148909596/3da5854f-8559-46c2-b9e0-ff5ee28ab304)
