@@ -1,0 +1,276 @@
+This entire file is a mix of Willis and Braden's work, 
+all of this file specifically went unused in the end but is simply shown here to illustrate many of the half finished fixes and diffuculties we had.
+
+
+
+
+
+let SPREADSHEET_ID        = "1aUoCb9UfsThZrAeRzUDN2ZTqqCaf_Qx8ZQs_qfLGfM0";
+let RAW_RESPONSES_SHEET   = "RawFormResponses";
+// let MONTHLY_TOTALS_SHEET  = "MonthlyOrderTotals";
+let TEST_SHEET            = "Test";
+let RESPONSES_CHANGED     = false;
+
+/*
+Assumptions:
+  - First section of form contains order-specific questions (food items, quantity)
+  - Second section of form contains personal information (name, email, allergies, ...)
+      - Allergies must be used to categorize orders into different groups
+*/
+
+function spreadsheetRange(sheetName) {
+  return `${sheetName}!A:ZZZ`;
+}
+
+function getLatestFormResponse() {
+  let form = FormApp.getActiveForm();
+  let allResponses = form.getResponses();;
+  return allResponses[allResponses.length - 1];
+}
+
+/**
+ * Any pertinent information we can gather about the form question
+ * will be extracted from the itemResponse instance and stored into
+ * an object.
+ */
+function itemResponseToObject(itemResponse) {
+  let item = itemResponse.getItem();
+  let questionType = item.getType()
+  let isGrid = questionType === FormApp.ItemType.GRID;
+
+  return {
+    "questionTitle": item.getTitle(),
+    "questionResponse": itemResponse.getResponse(),
+    "questionType": questionType.name(),
+    "gridRows": (isGrid) ? item.asGridItem().getRows() : null,
+    "gridColumns": (isGrid) ? item.asGridItem().getColumns() : null,
+    "formItem": item, // TODO: Do we care about returning the Item instance?
+  }
+}
+
+function isFoodQuestion(questionObj) {
+  return questionObj["questionType"] === "GRID";
+}
+
+function questionHasDisclaimer(questionObj) {
+  return questionObj["questionTitle"].toLowerCase().includes("disclaimer");
+}
+
+function enforceItemCap(questionObj) {
+  if (questionHasDisclaimer(questionObj)) {
+    let itemLimit = questionObj["questionTitle"].match(/^\d+|\d+\b|\d+(?=\w)/g)[0];
+    let curItems = 0;
+
+    for (let i = 0; i < questionObj["questionResponse"].length; i++) {
+      let response = parseInt(questionObj["questionResponse"][i]);
+        
+      if (curItems >= itemLimit) {
+        questionObj["questionResponse"][i] = 0;
+        RESPONSES_CHANGED = true;
+      }
+
+      if (curItems + response <= itemLimit) {
+        curItems += response;
+      } else {
+        questionObj["questionResponse"][i] = itemLimit - curItems;
+        RESPONSES_CHANGED = true;
+        curItems = itemLimit;
+      }
+    }
+  }
+}
+
+function getResponseArray(parsedResponses, enforceCap=true) {
+  let responseArray = [];
+  parsedResponses.forEach(
+    (response) => {
+      if (enforceCap && isFoodQuestion(response)) {
+        enforceItemCap(response);
+      }
+      let questionResponse = response["questionResponse"];
+
+      if (Array.isArray(questionResponse)) {
+        questionResponse.forEach((item) => {
+          responseArray.push(item);
+        })
+      } else {
+        responseArray.push(questionResponse);
+      }
+      
+    }
+  )
+  return responseArray;
+}
+
+function parseFormResponse(formResponse) {
+  let parsedResponses = [];
+  formResponse.getItemResponses().forEach(
+    (itemResponse) => {
+      let questionObj = itemResponseToObject(itemResponse);
+      parsedResponses.push(questionObj);
+    }
+  )
+
+  return parsedResponses;
+}
+
+function replaceResponsesInSpreadsheet(responseArray) {
+  // let sheet = Sheets.Spreadsheets.get(SpreadsheetApp=SPREADSHEET_ID);
+  let rawResponseRows = Sheets.Spreadsheets.Values.get(spreadsheetId=SPREADSHEET_ID, range=spreadsheetRange("RawFormResponsesTemp"));
+
+  // console.log(rawResponseRows);
+  // let rawFormEntries = Sheets.Spreadsheets.Values.get(SPREADSHEET_ID, spreadsheetRange(RAW_RESPONSES_SHEET));
+}
+
+function sheetRowId(index) {
+  /* https://stackoverflow.com/questions/9905533/convert-excel-column-alphabet-e-g-aa-to-number-e-g-25 */
+  var base = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', i, j, result = 0;
+
+  for (i = 0, j = index.length - 1; i < index.length; i += 1, j -= 1) {
+    result += Math.pow(base.length, j) * (base.indexOf(index[i]) + 1);
+  }
+
+  return result;
+};
+
+function getResponseIndex(formResponse, responseSheetRows) {
+  // console.log('form', formResponse, 'sheet', responseSheetRows.slice(1).reverse());
+  // Iterate backwards since it should always be the last entry
+  // console.log(responseSheetRows)
+  // console.log('sheet', responseSheetRows, 'form', formResponse);
+
+  for (let i = responseSheetRows.length - 1; i > 0; i--) {
+    let sheetResponse = responseSheetRows[i].slice(1);
+    let identicalResponses = true;
+    console.log("form", formResponse.length, "sheet", sheetResponse.length);
+    for (let j = 0; j < sheetResponse.length; j++) { 
+      console.log("Checking", sheetResponse[j], "and", formResponse[j]);
+      if (sheetResponse[j] !== formResponse[j]) {
+        identicalResponses = false;
+      }
+    }
+    if (identicalResponses) {
+      console.log("IDENTICAL");
+    }
+    break;
+  }
+
+  // responseSheetRows.reverse().forEach((sheetResponseRow) => {
+  //   let sheetResponse = sheetResponseRow.slice(1);
+  //   let identicalResponses = true;
+  //   if (sheetResponse !== )
+  // })
+  // responseSheetRows.slice(1).reverse().forEach((responseRow) => {
+    // console.log(responseRow);
+    // responseRow.forEach((response) => {
+      
+      // console.log(formResponse);
+      // Response sheet starts with a timestamp; ignore it
+      // let sameResponse = true;
+      // for (let i = 1; i < response.length; i++) {
+      //   let sheetAnswer = response[i+1];
+      //   let questionResponse = formResponse[i];
+      //   // console.log('sheet', sheetAnswer, 'form', questionResponse);
+      //   if (sheetAnswer !== questionResponse) {
+      //     sameResponse = false;
+      //   }
+      // }
+      // if (sameResponse) {
+      //   console.log('same response!', )
+      // }
+    // });
+  // });
+}
+
+function onSubmit() {
+
+
+//getLatestFormResponse();
+//console.log(getLatestFormResponse().getItemResponses());
+
+// Opens the Forms file by its ID.
+// If you created your script from within a Google Forms file, you can
+// use FormApp.getActiveForm() instead.
+// TODO(developer): Replace the ID with your own.
+const form = FormApp.getActiveForm();
+
+// Gets the responses to the form.
+const formResponses = form.getResponses();
+
+// Iterates over the responses.
+for (const formResponse of formResponses) {
+
+  // Gets the item responses from each form response.
+  const itemResponses = formResponse.getItemResponses();
+
+  // Iterates over the item responses.
+  for (const itemResponse of itemResponses) {
+
+    // Logs the items' questions and responses to the console.
+    console.log(`Response to the question '${itemResponse.getItem().getTitle()}' was
+      '${itemResponse.getResponse()}'`);
+  }
+}
+
+const formResponse = form.createResponse();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // var sheet = Sheets.Spreadsheets.get(SpreadsheetApp=SPREADSHEET_ID);
+
+  // sheet.getRange('A50');
+  // var SpreadsheetApp.getSheetByName()
+
+  // var sheet = SpreadsheetApp.getActiveSpreadsheet
+  // let range = spreadsheet.getRange('A50');
+
+  // console.log(spreadsheet)
+
+  // let spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // const sheet = spreadsheet.getSheetByName('RawFormResponsesTemp');
+  // console.log(sheet);
+  // const range = sheet.getRange('A2'); // This should be a single cell
+  // range.activateAsCurrentCell();
+  // let rawFormEntries = Sheets.Spreadsheets.Values.get(SPREADSHEET_ID, spreadsheetRange(RAW_RESPONSES_SHEET));
+  // let monthlyTotalEntries = Sheets.Spreadsheets.Values.update(SPREADSHEET_ID)
+  ////////////////////////////////////////////
+  //let latestResponse = getLatestFormResponse();
+  //let parsedResponses = parseFormResponse(latestResponse);
+  //let originalResponseArray = getResponseArray(parsedResponses, false)
+  //let newResponseArray = getResponseArray(parsedResponses);
+
+  // console.log(parsedResponses);
+  //console.log(originalResponseArray);
+  //console.log(newResponseArray);
+  //let rawSpreadsheetRows = 
+          //Sheets.Spreadsheets.Values.get(
+              //spreadsheetId=SPREADSHEET_ID, 
+              //range=spreadsheetRange("RawFormResponsesTemp")).values;
+
+  //console.log(rawSpreadsheetRows[rawSpreadsheetRows.length - 1]);
+////////////////////////////////////////////////
+  // let responseIndex = getResponseIndex(originalResponseArray, rawSpreadsheetRows.slice(1));
+
+  // if (RESPONSES_CHANGED || true) {
+  //   replaceResponsesInSpreadsheet([]);
+  // }
+}
+
+onSubmit();

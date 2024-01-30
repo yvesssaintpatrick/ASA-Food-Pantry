@@ -1,0 +1,108 @@
+function myFunction() {
+  //UNUSED
+  let sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("RawFormResponsesTemp");
+  let range = sheet.getRange('A52');
+  let currentCell = range.activateAsCurrentCell();
+}
+function clear() {
+  //UNUSED
+//    var sheet =   SpreadsheetApp.getActive().getSheetByName('Form Responses 1');
+    var sheet =   SpreadsheetApp.openByUrl('https://docs.google.com/spreadsheets/d/1aUoCb9UfsThZrAeRzUDN2ZTqqCaf_Qx8ZQs_qfLGfM0/').getSheetByName('RawFormResponsesTemp');
+    var lastRow = sheet.getLastRow();
+    sheet.deleteRows(2,lastRow-1);
+}
+
+
+function incrementMonthlyResponseCounter(){
+  //unused
+  let sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("TruthTable");
+  let range = sheet.getRange('F4');
+  let currentValue = range.getValue();
+  //console.log(range.getValue())
+  range.setValue(currentValue + 1);
+
+}
+
+function monthlyCursorReset(){
+  //triggers monthly on the 15th on each month
+let sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("RawFormResponsesTemp");
+let range = sheet.getRange('A3');
+let topMostRawDataLocation = range.getNextDataCell(SpreadsheetApp.Direction.DOWN);
+let endOfEmptyCells = topMostRawDataLocation.offset(-1, 0);
+let rowIntValue = endOfEmptyCells.getRow();
+if (rowIntValue > 100){ //data was too far down or bottom of sheet was reached
+
+//console.log("got into if.")
+rowIntValue = 95;
+//console.log("this would delete rows: (" + 3 + ", " + (rowIntValue-3) +")")
+}
+else{
+  //console.log("did not get into if.")
+  //console.log("this would delete rows: (" + 3 + ", " + (rowIntValue-3) +")")
+}
+//console.log("this would delete rows: (" + 3 + ", " + (rowIntValue-3) +")")
+sheet.deleteRows(3,rowIntValue - 1);
+
+}
+
+function enforceItemCaps() {
+
+  //UNFINISHED
+  let rawSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("RawFormResponsesTemp");
+  // let finalSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("FinalFormResponses");
+  // let rightMostCell = rawSheet.getRange("A1");
+
+  let questionRow = rawSheet.getSheetValues(1, 1, 1, rawSheet.getMaxColumns());
+  let lastRawResponse = rawSheet.getSheetValues(rawSheet.getLastRow(), 1, 1, rawSheet.getMaxColumns());
+  console.log(lastRawResponse);
+  //console.log(questionRow[0]);
+
+  let currentQuestionArray = [];
+  let currentEditedQuestionArray = [];
+  let loopCounter = 0;
+  let currentQuestionSum = 0;
+  
+  for (currentQuestionStringIndex in questionRow[0]){
+    //console.log(questionRow[0][currentQuestionStringIndex]);
+    
+    
+    let indexOfFirstSquareBrace = questionRow[0][currentQuestionStringIndex].indexOf('[');
+    currentEditedQuestionArray[currentQuestionStringIndex] = questionRow[0][currentQuestionStringIndex].substring(0, indexOfFirstSquareBrace);
+    //filling string array with unique questions containing disclaimer in all caps
+
+    //console.log(currentEditedQuestionArray[currentQuestionStringIndex]);
+
+    if (currentEditedQuestionArray[currentQuestionStringIndex].includes("DISCLAIMER") && !currentQuestionArray.includes(currentEditedQuestionArray[currentQuestionStringIndex])){ 
+      //question has been identified as unique and is added to the unique question string array and the counter is
+      //set to 0 because if it is unique it is either the ONLY entry for that question or the first entry and
+      //there are more to follow
+
+      //console.log("currentEditedQuestionArray[currentQuestionStringIndex]: " + currentEditedQuestionArray[currentQuestionStringIndex]);
+      let currentQuestionSum = 0;
+      currentQuestionArray[loopCounter] = currentEditedQuestionArray[currentQuestionStringIndex];
+      console.log(lastRawResponse[0][currentQuestionStringIndex]);
+      //currentQuestionSum += lastRawResponse[0][currentQuestionStringIndex];
+      console.log("first if sum: " + currentQuestionSum);
+      //console.log("entry num: " + loopCounter);
+      loopCounter++;
+    }
+    else{
+      if (currentEditedQuestionArray[currentQuestionStringIndex].includes("DISCLAIMER")){
+        //question is NOT unique but has disclaimer in it, meaning it must be part of a previous question that has
+        //already been identified as unique before it
+        currentQuestionSum += lastRawResponse[0][currentQuestionStringIndex];
+        console.log("else if sum: " + currentQuestionSum); //TODO: sum not resetting to 0 properly after being incremented
+      }
+      else{ //next question has been identified as not part of the previous group of questions
+        currentQuestionSum = 0;
+      }
+    }
+  }
+
+
+
+
+}
+
+//enforceItemCaps()
+
